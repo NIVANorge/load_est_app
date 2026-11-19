@@ -14,7 +14,7 @@ st.markdown(
 
     To begin, click the button below to download an Excel template where you can add your data. Then
     go to the `Estimate loads` page (left sidebar) to upload your Excel file and calculate loads. 
-    Example data for testing can be downloaded [here](xxxxxx).
+    Example data for testing can be downloaded [here](https://github.com/NIVANorge/load_est_app/tree/main/examples).
     """
 )
 

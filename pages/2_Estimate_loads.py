@@ -950,6 +950,7 @@ if "annual_df" in st.session_state:
 
         st.markdown(
             """
-            For further details of the performance metircs, see [here](xxxx).
+            For further details of the performance metircs, see 
+            [here](https://github.com/NIVANorge/load_est_app/blob/main/docs/model_fit_metrics.md).
             """
         )
