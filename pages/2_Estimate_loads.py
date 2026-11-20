@@ -30,7 +30,7 @@ uploaded_file = st.file_uploader(
 
 if uploaded_file is None:
 
-    cleanup_all_job_dirs()
+    # cleanup_all_job_dirs()
 
     for key in [
         "uploaded_file_id",
@@ -52,7 +52,7 @@ file_id = (
 
 if st.session_state.get("uploaded_file_id") != file_id:
     # New file uploaded -> clear previous results
-    cleanup_all_job_dirs()
+    # cleanup_all_job_dirs()
 
     for key in [
         "job_dir",
