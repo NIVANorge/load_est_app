@@ -13,7 +13,6 @@ for (package in packages) {
 
     install.packages(
         package,
-        dependencies = TRUE,
         repos = repo,
         Ncpus = parallel::detectCores()
     )
