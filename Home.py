@@ -9,12 +9,16 @@ st.title(APP_TITLE)
 st.markdown(
     """
     This app allows you to estimate **annual** and **flow-normalised annual** loads from your own
-    data. Loads are calculated using **Weighted Regressions on Time, Discharge and Season (WRTDS)**
-    using the R-Package [EGRET](https://doi-usgs.github.io/EGRET/).
+    data. 
+    
+    Loads are calculated using **Weighted Regressions on Time, Discharge and Season (WRTDS)**
+    using the R-Package [EGRET](https://doi-usgs.github.io/EGRET/). For details of how the app works,
+    see the [documentation](https://github.com/NIVANorge/load_est_app/blob/main/docs/overview.md).
 
     To begin, click the button below to download an Excel template where you can add your data. Then
     go to the `Estimate loads` page (left sidebar) to upload your Excel file and calculate loads. 
-    Example data for testing can be downloaded [here](https://github.com/NIVANorge/load_est_app/tree/main/examples).
+    Example data for testing can be downloaded 
+    [here](https://github.com/NIVANorge/load_est_app/tree/main/examples).
     """
 )
 
