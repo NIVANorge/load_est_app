@@ -1,3 +1,4 @@
+import uuid
 from pathlib import Path
 
 import pandas as pd
@@ -6,8 +7,8 @@ import streamlit as st
 from plotly.subplots import make_subplots
 from src import config
 from src.egret_wrapper import (
-    cleanup_all_job_dirs,
     cleanup_job_dir,
+    cleanup_session_jobs,
     create_job_dir,
     load_outputs,
     stream_r_process,
@@ -20,9 +21,13 @@ from src.validation import ValidationError, validate_workbook
 st.set_page_config(page_icon="📈")
 st.title("Estimate loads")
 
+
 # ---------------------------------------------------------------------
 # Upload
 # ---------------------------------------------------------------------
+if "session_id" not in st.session_state:
+    st.session_state["session_id"] = str(uuid.uuid4())
+
 uploaded_file = st.file_uploader(
     "Upload completed Excel template",
     type=["xlsx"],
@@ -30,12 +35,11 @@ uploaded_file = st.file_uploader(
 
 if uploaded_file is None:
 
-    # cleanup_all_job_dirs()
-
     for key in [
         "uploaded_file_id",
         "job_dir",
         "model_count",
+        "cleaned_inputs",
         "annual_df",
         "fn_df",
         "diag_df",
@@ -52,11 +56,12 @@ file_id = (
 
 if st.session_state.get("uploaded_file_id") != file_id:
     # New file uploaded -> clear previous results
-    # cleanup_all_job_dirs()
+    cleanup_session_jobs(st.session_state["session_id"])
 
     for key in [
         "job_dir",
         "model_count",
+        "cleaned_inputs",
         "annual_df",
         "fn_df",
         "diag_df",
@@ -305,7 +310,7 @@ if st.button(
 
     try:
 
-        job_dir = create_job_dir()
+        job_dir = create_job_dir(st.session_state["session_id"])
 
         model_count, data_warnings, cleaned_inputs = write_model_inputs(
             chem_df,

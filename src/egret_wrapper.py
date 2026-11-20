@@ -23,18 +23,20 @@ class EgretError(Exception):
 # ---------------------------------------------------------------------
 # Workspace
 # ---------------------------------------------------------------------
-def create_job_dir() -> Path:
+def create_job_dir(session_id: str) -> Path:
 
     jobs_dir = Path(config.TMP_DIR) / "jobs"
 
-    jobs_dir.mkdir(
+    session_dir = jobs_dir / session_id
+
+    session_dir.mkdir(
         parents=True,
         exist_ok=True,
     )
 
     job_id = uuid.uuid4().hex[:12]
 
-    job_dir = jobs_dir / f"job_{job_id}"
+    job_dir = session_dir / f"job_{job_id}"
 
     job_dir.mkdir(
         parents=True,
@@ -56,27 +58,16 @@ def cleanup_job_dir(
         )
 
 
-def cleanup_all_job_dirs() -> None:
-    """
-    Delete all EGRET job directories.
+def cleanup_session_jobs(session_id: str) -> None:
 
-    Useful when a new workbook is uploaded or
-    when the file uploader is cleared.
-    """
+    session_dir = Path(config.TMP_DIR) / "jobs" / session_id
 
-    jobs_dir = Path(config.TMP_DIR) / "jobs"
+    if session_dir.exists():
 
-    if not jobs_dir.exists():
-        return
-
-    for path in jobs_dir.iterdir():
-
-        if path.is_dir():
-
-            shutil.rmtree(
-                path,
-                ignore_errors=True,
-            )
+        shutil.rmtree(
+            session_dir,
+            ignore_errors=True,
+        )
 
 
 # ---------------------------------------------------------------------
