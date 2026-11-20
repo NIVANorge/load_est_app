@@ -1,27 +1,32 @@
-FROM python:3.13
+FROM rocker/geospatial:latest
 
 WORKDIR /app
 
 # ------------------------------------------------------------------
-# System dependencies + R
+# System dependencies
 # ------------------------------------------------------------------
-
 RUN apt-get update && apt-get install -y \
-    r-base \
-    r-base-dev \
+    python3 \
+    python3-pip \
+    python3-venv \
+    python3-dev \
     build-essential \
     gfortran \
-    libcurl4-openssl-dev \
-    libssl-dev \
-    libxml2-dev \
-    libfontconfig1-dev \
+    cmake \
+    pkg-config \
+    libuv1-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # ------------------------------------------------------------------
-# Python dependencies
+# Python environment
 # ------------------------------------------------------------------
-
 COPY requirements.txt .
+
+RUN python3 -m venv /opt/venv
+
+ENV PATH="/opt/venv/bin:${PATH}"
+
+RUN pip install --upgrade pip
 
 RUN pip install --no-cache-dir \
     -r requirements.txt
@@ -29,22 +34,18 @@ RUN pip install --no-cache-dir \
 # ------------------------------------------------------------------
 # R dependencies
 # ------------------------------------------------------------------
+COPY r_packages.R .
 
-RUN Rscript -e "install.packages( \
-    c( \
-        'EGRET', \
-        'dplyr', \
-        'readr', \
-        'lubridate' \
-    ), \
-    repos='https://cloud.r-project.org' \
-)"
+RUN Rscript r_packages.R
 
 # ------------------------------------------------------------------
 # Application files
 # ------------------------------------------------------------------
-
-COPY . .
+COPY Home.py .
+COPY templates/ ./templates/
+COPY src/ ./src/
+COPY r/ ./r/
+COPY pages/ ./pages/
 
 # ------------------------------------------------------------------
 # Runtime directories
@@ -52,9 +53,8 @@ COPY . .
 RUN mkdir -p /tmp
 
 # ------------------------------------------------------------------
-# Streamlit
+# Streamlit configuration
 # ------------------------------------------------------------------
-
 EXPOSE 8501
 
-CMD ["streamlit", "run", "app/Home.py", "--server.port=8501", "--server.address=0.0.0.0", "--browser.gatherUsageStats=false"]
+CMD ["streamlit", "run", "Home.py", "--server.port=8501", "--server.address=0.0.0.0", "--browser.gatherUsageStats=false"]
