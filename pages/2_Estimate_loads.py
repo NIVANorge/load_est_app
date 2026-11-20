@@ -308,7 +308,13 @@ if st.button(
 
         job_dir = create_job_dir()
 
-        model_count, data_warnings = write_model_inputs(chem_df, flow_df, job_dir)
+        model_count, data_warnings, cleaned_inputs = write_model_inputs(
+            chem_df,
+            flow_df,
+            job_dir,
+        )
+
+        st.session_state["cleaned_inputs"] = cleaned_inputs
 
         st.session_state["model_count"] = model_count
 
@@ -328,6 +334,187 @@ if "job_dir" in st.session_state:
 
     st.success("Inputs created successfully.")
 
+# ---------------------------------------------------------------------
+# Input data visualisation
+# ---------------------------------------------------------------------
+if "cleaned_inputs" in st.session_state:
+
+    st.divider()
+
+    st.subheader("Input data visualisation")
+
+    st.markdown(
+        """
+        The plot below shows the cleaned data that will be supplied to EGRET.
+        **Concentrations** (converted to mg/L) are plotted as points, while daily
+        **streamflow** (m³/s) is shown as a line on the secondary y-axis.
+
+        Hover your mouse over the plot to see **navigation tools** top-right 
+        (zoom, pan, full-screen etc.).
+
+        Check that the data look plausible and consider further cleaning in the
+        Excel template, if necessary. Then click `Run EGRET` below to fit the 
+        WRTDS models (note that this takes some time).
+        """
+    )
+
+    input_df = st.session_state["cleaned_inputs"]
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+
+        stations = sorted(input_df["station_code"].unique())
+
+        station = st.selectbox(
+            "Station",
+            stations,
+            key="input_station",
+        )
+
+    with col2:
+
+        parameters = sorted(
+            input_df.loc[
+                input_df["station_code"] == station,
+                "parameter",
+            ].unique()
+        )
+
+        parameter = st.selectbox(
+            "Parameter",
+            parameters,
+            key="input_parameter",
+        )
+
+    plot_df = input_df[
+        (input_df["station_code"] == station) & (input_df["parameter"] == parameter)
+    ].copy()
+
+    flow_plot = plot_df[plot_df["series"] == "flow"].sort_values("date").copy()
+
+    sample_plot = plot_df[plot_df["series"] == "sample"].sort_values("date").copy()
+
+    fig = make_subplots(specs=[[{"secondary_y": True}]])
+
+    # ----------------------------------------------------------
+    # Flow
+    # ----------------------------------------------------------
+    fig.add_trace(
+        go.Scatter(
+            x=flow_plot["date"],
+            y=flow_plot["flow"],
+            mode="lines",
+            name="Flow",
+            line=dict(
+                color="#1f78b4",
+                width=1,
+            ),
+            hovertemplate=(
+                "<b>Date</b>: %{x|%Y-%m-%d}"
+                "<br>"
+                "<b>Flow</b>: %{y:,.2f} m³/s"
+                "<extra></extra>"
+            ),
+        ),
+        secondary_y=True,
+    )
+
+    # ----------------------------------------------------------
+    # Concentration
+    # ----------------------------------------------------------
+    fig.add_trace(
+        go.Scatter(
+            x=sample_plot["date"],
+            y=sample_plot["concentration"],
+            mode="markers",
+            name="Concentration",
+            marker=dict(
+                color="#e31a1c",
+                size=8,
+            ),
+            hovertemplate=(
+                "<b>Date</b>: %{x|%Y-%m-%d}"
+                "<br>"
+                "<b>Concentration</b>: %{y:,.3f} mg/L"
+                "<extra></extra>"
+            ),
+        ),
+        secondary_y=False,
+    )
+
+    # ----------------------------------------------------------
+    # Axes
+    # ----------------------------------------------------------
+    fig.update_xaxes(
+        title_text=None,
+        showgrid=True,
+        gridcolor="white",
+        zeroline=False,
+        tickfont=dict(size=14),
+    )
+
+    fig.update_yaxes(
+        title_text="Concentration (mg/L)",
+        secondary_y=False,
+        title_font=dict(size=18),
+        tickfont=dict(size=14),
+        showgrid=True,
+        gridcolor="white",
+        zeroline=True,
+        zerolinecolor="white",
+    )
+
+    fig.update_yaxes(
+        title_text="Flow (m³/s)",
+        secondary_y=True,
+        title_font=dict(size=18),
+        tickfont=dict(size=14),
+        showgrid=False,
+    )
+
+    # ----------------------------------------------------------
+    # Styling
+    # ----------------------------------------------------------
+    fig.update_layout(
+        template="ggplot2",
+        height=550,
+        hovermode="x unified",
+        title=dict(
+            text=f"{station} | {parameter}",
+            x=0.5,
+            font=dict(
+                size=24,
+            ),
+        ),
+        showlegend=True,
+        legend=dict(
+            orientation="h",
+            yanchor="middle",
+            y=-0.15,
+            xanchor="center",
+            x=0.5,
+            font=dict(
+                size=16,
+            ),
+        ),
+        font=dict(
+            size=16,
+        ),
+        plot_bgcolor="#EBEBEB",
+        paper_bgcolor="white",
+        margin=dict(
+            l=70,
+            r=70,
+            t=70,
+            b=40,
+        ),
+    )
+
+    st.plotly_chart(
+        fig,
+        width="stretch",
+    )
 
 # ---------------------------------------------------------------------
 # Run EGRET

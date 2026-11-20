@@ -5,6 +5,7 @@ import subprocess
 import uuid
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 from src import config
 from src.results import load_annual_results, load_flow_normalised_results
@@ -103,9 +104,10 @@ def write_model_inputs(
     chem_df: pd.DataFrame,
     flow_df: pd.DataFrame,
     job_dir: Path,
-) -> int:
+) -> tuple[int, list[str], pd.DataFrame]:
 
     all_warnings = []
+    plot_frames = []
 
     parameter_columns = find_parameter_columns(chem_df)
 
@@ -130,7 +132,8 @@ def write_model_inputs(
         for parameter_column in parameter_columns:
 
             sample, sample_warnings = create_egret_sample_frame(
-                chem_station, parameter_column
+                chem_station,
+                parameter_column,
             )
 
             if sample.empty:
@@ -145,6 +148,7 @@ def write_model_inputs(
             sample_dates = pd.to_datetime(sample["Date"])
 
             chem_start = sample_dates.min()
+
             chem_end = sample_dates.max()
 
             overlap_start = max(
@@ -158,6 +162,7 @@ def write_model_inputs(
             )
 
             start_year = overlap_start.year
+
             end_year = overlap_end.year
 
             common_start = pd.Timestamp(
@@ -192,6 +197,41 @@ def write_model_inputs(
             if daily.empty:
                 continue
 
+            # ----------------------------------------------------------
+            # Save plot data
+            # ----------------------------------------------------------
+            flow_plot = pd.DataFrame(
+                {
+                    "station_code": station,
+                    "parameter": parameter,
+                    "date": pd.to_datetime(daily["Date"]),
+                    "flow": daily["Q"],
+                    "concentration": np.nan,
+                    "series": "flow",
+                }
+            )
+
+            sample_plot = pd.DataFrame(
+                {
+                    "station_code": station,
+                    "parameter": parameter,
+                    "date": pd.to_datetime(sample["Date"]),
+                    "flow": np.nan,
+                    "concentration": sample["Value"],
+                    "series": "sample",
+                }
+            )
+
+            plot_frames.extend(
+                [
+                    flow_plot,
+                    sample_plot,
+                ]
+            )
+
+            # ----------------------------------------------------------
+            # Write EGRET inputs
+            # ----------------------------------------------------------
             model_dir = job_dir / f"{station}__{parameter}"
 
             model_dir.mkdir(
@@ -211,7 +251,29 @@ def write_model_inputs(
 
             model_count += 1
 
-    return (model_count, all_warnings)
+    cleaned_inputs = (
+        pd.concat(
+            plot_frames,
+            ignore_index=True,
+        )
+        if plot_frames
+        else pd.DataFrame(
+            columns=[
+                "station_code",
+                "parameter",
+                "date",
+                "flow",
+                "concentration",
+                "series",
+            ]
+        )
+    )
+
+    return (
+        model_count,
+        all_warnings,
+        cleaned_inputs,
+    )
 
 
 # ---------------------------------------------------------------------
