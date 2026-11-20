@@ -274,8 +274,7 @@ if not station_summary.empty:
 n_combos = len(station_summary)
 st.markdown(
     f"EGRET will fit WRTDS models for the following **{n_combos} "
-    f"station-parameter combinations**. Expect processing to take "
-    f"up to **{n_combos} minutes**."
+    f"station-parameter combinations**."
 )
 
 st.dataframe(
