@@ -6,7 +6,27 @@ import numpy as np
 import pandas as pd
 from src import config
 
-PARAM_PATTERN = re.compile(r"^(.+)_(mg/l|ug/l|μg/l|ng/l)$")
+PARAM_PATTERN = re.compile(r"^(.+)_(mg/l|ug/l|ng/l)$", re.IGNORECASE)
+
+
+def normalize_unit(unit: str) -> str:
+    """
+    Convert unit variants to a canonical form.
+
+    Examples
+    --------
+    μg/l -> ug/l
+    µg/l -> ug/l
+    UG/L -> ug/l
+    Mg/L -> mg/l
+    """
+    return (
+        str(unit)
+        .strip()
+        .lower()
+        .replace("μ", "u")  # Greek mu
+        .replace("µ", "u")  # Micro sign
+    )
 
 
 def check_date_overlap(
@@ -54,21 +74,25 @@ def split_parameter_column(
     """
     Example:
         TOTN_ug/l
+        TOTN_μg/l
+        TOTN_µg/l
+        TOTN_UG/L
 
     Returns:
         ("TOTN", "ug/l")
     """
 
-    match = PARAM_PATTERN.match(column_name)
+    try:
+        parameter, unit = column_name.rsplit("_", 1)
+    except ValueError:
+        raise ValueError(f"Invalid parameter column: '{column_name}'")
 
-    if match is None:
+    unit = normalize_unit(unit)
 
-        raise ValueError(f"Invalid parameter column: " f"'{column_name}'")
+    if not PARAM_PATTERN.match(f"{parameter}_{unit}"):
+        raise ValueError(f"Invalid parameter column: '{column_name}'")
 
-    return (
-        match.group(1),
-        match.group(2),
-    )
+    return parameter, unit
 
 
 def get_parameter_name(
@@ -133,11 +157,12 @@ def convert_to_mg_l(
     if pd.isna(value):
         return np.nan
 
+    unit = normalize_unit(unit)
+
     factor = config.UNIT_TO_MG_L.get(unit)
 
     if factor is None:
-
-        raise ValueError(f"Unsupported unit: " f"'{unit}'")
+        raise ValueError(f"Unsupported unit: '{unit}'")
 
     return float(value) * factor
 

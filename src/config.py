@@ -38,7 +38,6 @@ FLOW_REQUIRED_COLUMNS = [
 UNIT_TO_MG_L = {
     "mg/l": 1.0,
     "ug/l": 1e-3,
-    "μg/l": 1e-3,
     "ng/l": 1e-6,
 }
 
